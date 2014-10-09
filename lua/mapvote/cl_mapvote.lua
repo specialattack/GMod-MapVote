@@ -211,7 +211,22 @@ function PANEL:AddVoter(voter)
         if(icon_container.img) then
             surface.SetMaterial(icon_container.img)
             surface.SetDrawColor(Color(255, 255, 255))
-            surface.DrawTexturedRect(2, 2, 16, 16)
+            surface.DrawTexturedRect(2, 2, w / 2 - 2, h - 4)
+        end
+    end
+    
+    do
+        local OrigSetSize = icon_container.SetSize
+        icon_container.SetSize = function(s, w, h)
+            if MapVote.HasExtraVotePower(voter) then
+                icon:SetPos(h + 2, 2)
+                icon:SetSize(h - 4, h - 4)
+                OrigSetSize(s, h * 2, h)
+            else
+                icon:SetPos(2, 2)
+                icon:SetSize(h - 4, h - 4)
+                OrigSetSize(s, h, h)
+            end
         end
     end
     
@@ -220,8 +235,12 @@ end
 
 function PANEL:Think()
     for k, v in pairs(self.mapList:GetItems()) do
+        v.PrevVotes = v.NumVotes or 0
         v.NumVotes = 0
     end
+    
+    local extra = math.Clamp(300, 0, ScrW() - 624)
+    local width = (extra + 600) / 5 - 4
     
     for k, v in pairs(self.Voters) do
         if(not IsValid(v.Player)) then
@@ -231,6 +250,7 @@ function PANEL:Think()
                 v:Remove()
             else
                 local bar = self:GetMapButton(MapVote.Votes[v.Player:SteamID()])
+                local currentVotes = bar.NumVotes
                 
                 if(MapVote.HasExtraVotePower(v.Player)) then
                     bar.NumVotes = bar.NumVotes + 2
@@ -240,12 +260,26 @@ function PANEL:Think()
                 
                 if(IsValid(bar)) then
                     local CurrentPos = Vector(v.x, v.y, 0)
-                    --local NewPos = Vector((bar.x + bar:GetWide()) - 21 * bar.NumVotes - 2, bar.y + (bar:GetTall() * 0.5 - 10), 0)
-                    local NewPos = Vector(bar.x + 21 * (bar.NumVotes - 1) + 2, bar.y + bar:GetTall() - 23, 0)
+                    local NewPos = nil
+                    local NewSize = nil
+                    --if (bar.PrevVotes * 37 > width) then
+                        local size = math.Clamp(32, 0, width / math.Clamp(bar.PrevVotes, 5, math.huge) - 5)
+                        --NewPos = Vector(bar.x + (21 * currentVotes) % (bar.PrevVotes * 21) + 2, bar.y + bar:GetTall() - 39 + math.floor(currentVotes / (bar.PrevVotes * 21)) * 21, 0)
+                        NewPos = Vector(bar.x + (size + 5) * currentVotes + 3, bar.y + bar:GetTall() - 39, 0)
+                        NewSize = Vector(size + 4, size + 4, 0)
+                    --else
+                    --    NewPos = Vector(bar.x + 37 * currentVotes + 2, bar.y + bar:GetTall() - 39, 0)
+                    --    NewSize = Vector(36, 36, 0)
+                    --end
+                    --local NewPos = Vector((bar.x + bar:GetWide()) - 21 * currentVotes - 1, bar.y + (bar:GetTall() * 0.5 - 10), 0)
                     
                     if(not v.CurPos or v.CurPos ~= NewPos) then
                         v:MoveTo(NewPos.x, NewPos.y, 0.3)
                         v.CurPos = NewPos
+                    end
+                    if(not v.CurSize or v.CurSize ~= NewSize) then
+                        v:SizeTo(NewSize.x, NewSize.y, 0.3)
+                        v.CurSize = NewSize
                     end
                 end
             end
@@ -290,7 +324,7 @@ function PANEL:SetMaps(maps)
                 end
                 
                 draw.RoundedBox(4, 0, 0, w, h, col)
-                draw.DrawText(mapName, "RAM_VoteFont", width / 2, width + 6, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
+                draw.DrawText(mapName, "RAM_VoteFont", width / 2, width + 2, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
                 Paint(s, w, h)
             end
         end
