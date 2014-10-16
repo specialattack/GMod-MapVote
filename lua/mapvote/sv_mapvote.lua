@@ -61,7 +61,8 @@ function MapVote.Start(length, current, limit, prefix)
     limit = limit or MapVote.Config.MapLimit or 24
     cooldown = MapVote.Config.EnableCooldown or true
     prefix = prefix or MapVote.Config.MapPrefixes
-
+    local gamemodes = MapVote.Config.Gamemodes
+    
     local is_expression = false
 
     if not prefix then
@@ -98,9 +99,9 @@ function MapVote.Start(length, current, limit, prefix)
                 amt = amt + 1
             end
         else
-            for k, v in pairs(prefix) do
-                if string.find(map, "^"..v) then
-                    vote_maps[#vote_maps + 1] = map:sub(1, -5)
+            for _prefix, _gamemode in pairs(prefix) do
+                if string.find(map, "^".._prefix) then
+                    vote_maps[#vote_maps + 1] = { map:sub(1, -5), _gamemode[math.random(#_gamemode)] }
                     amt = amt + 1
                     break
                 end
@@ -114,7 +115,12 @@ function MapVote.Start(length, current, limit, prefix)
         net.WriteUInt(#vote_maps, 32)
         
         for i = 1, #vote_maps do
-            net.WriteString(vote_maps[i])
+            net.WriteString(vote_maps[i][1])
+            if not gamemodes[vote_maps[i][2]] then
+                net.WriteString(vote_maps[i][2])
+            else
+                net.WriteString(gamemodes[vote_maps[i][2]])
+            end
         end
         
         net.WriteUInt(length, 32)
@@ -160,8 +166,9 @@ function MapVote.Start(length, current, limit, prefix)
         
         
         timer.Simple(4, function()
-            hook.Run("MapVoteChange", map)
-            RunConsoleCommand("changelevel", map)
+            hook.Run("MapVoteChange", map[1])
+            RunConsoleCommand("gamemode", map[2])
+            RunConsoleCommand("changelevel", map[1])
         end)
     end)
 end
