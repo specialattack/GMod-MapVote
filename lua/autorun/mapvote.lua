@@ -9,7 +9,16 @@ MapVoteConfigDefault = {
     EnableCooldown = true,
     MapsBeforeRevote = 3,
     RTVPlayerCount = 3,
-    MapPrefixes = {"ttt_"}
+    MapPrefixes = {
+        ["ttt_"] = { "terrortown" },
+        ["ph_"] = { "prophunt" },
+        ["cs_"] = { "terrortown", "prophunt" }
+    },
+    Gamemodes = {
+        ["terrortown"] = "Trouble in Terrorist Town",
+        ["prophunt"] = "Prop Hunt",
+        ["murder"] = "Murder"
+    }
 }
 --Default Config
 
@@ -18,19 +27,19 @@ hook.Add( "Initialize", "MapVoteConfigSetup", function()
         file.CreateDir( "mapvote" )
     end
     if not file.Exists( "mapvote/config.txt", "DATA" ) then
-        file.Write( "mapvote/config.txt", util.TableToJSON( MapVoteConfigDefault ) )
+        file.Write( "mapvote/config.txt", util.TableToJSON( MapVoteConfigDefault, true ) )
     end
 end )
 
 function MapVote.HasExtraVotePower(ply)
-	-- Example that gives admins more voting power
-	--[[
+    -- Example that gives admins more voting power
+    --[[
     if ply:IsAdmin() then
-		return true
-	end 
+        return true
+    end 
     --]]
 
-	return false
+    return false
 end
 
 
@@ -47,7 +56,7 @@ if SERVER then
     AddCSLuaFile("mapvote/cl_mapvote.lua")
 
     include("mapvote/sv_mapvote.lua")
-    include("mapvote/rtv.lua")
+    --include("mapvote/rtv.lua")
 else
     include("mapvote/cl_mapvote.lua")
 end

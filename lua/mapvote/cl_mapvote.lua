@@ -6,6 +6,14 @@ surface.CreateFont("RAM_VoteFont", {
     shadow = true
 })
 
+surface.CreateFont("RAM_VoteFontGamemode", {
+    font = "Trebuchet MS",
+    size = 19,
+    antialias = true,
+    shadow = true,
+    outline = true
+})
+
 surface.CreateFont("RAM_VoteFontCountdown", {
     font = "Tahoma",
     size = 32,
@@ -33,8 +41,9 @@ net.Receive("RAM_MapVoteStart", function()
     
     for i = 1, amt do
         local map = net.ReadString()
+        local gamemode = net.ReadString()
         
-        MapVote.CurrentMaps[#MapVote.CurrentMaps + 1] = map
+        MapVote.CurrentMaps[#MapVote.CurrentMaps + 1] = { map, gamemode }
     end
     
     MapVote.EndTime = CurTime() + net.ReadUInt(32)
@@ -312,7 +321,8 @@ function PANEL:SetMaps(maps)
         local extra = math.Clamp(300, 0, ScrW() - 624)
         local width = (extra + 600) / 5
         local height = width + 60
-        local mapName = v
+        local mapName = v[1]
+        local gamemode = v[2]
         
         do
             local Paint = button.Paint
@@ -324,7 +334,10 @@ function PANEL:SetMaps(maps)
                 end
                 
                 draw.RoundedBox(4, 0, 0, w, h, col)
-                draw.DrawText(mapName, "RAM_VoteFont", width / 2, width + 2, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
+                draw.DrawText(mapName, "RAM_VoteFont", width / 2, width - 6, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
+                --draw.DrawText(gamemode, "RAM_VoteFontGamemode", width / 2, width - 18, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
+                --draw.SimpleTextOutlined( string Text, string font, number x, number y, table color, number xAlign, number yAlign, number outlinewidth, table outlinecolor )
+                draw.SimpleTextOutlined( gamemode, "RAM_VoteFont", width / 2, width + 16, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0, 255) )
                 Paint(s, w, h)
             end
         end
@@ -342,7 +355,7 @@ function PANEL:SetMaps(maps)
         local icon = vgui.Create("DImage", button)
         icon:SetSize(width - 8, width - 8)
         icon:SetPos(4, 4)
-        icon:SetImage("maps/" .. v, "vgui/avatar_default")
+        icon:SetImage("maps/" .. v[1], "vgui/avatar_default")
         
         self.mapList:AddItem(button)
     end
