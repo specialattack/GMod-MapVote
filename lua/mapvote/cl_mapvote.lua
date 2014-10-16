@@ -352,10 +352,16 @@ function PANEL:SetMaps(maps)
         button:SetWide(width)
         button.NumVotes = 0
         
-        local icon = vgui.Create("DImage", button)
-        icon:SetSize(width - 8, width - 8)
-        icon:SetPos(4, 4)
-        icon:SetImage("maps/" .. v[1], "vgui/avatar_default")
+        --local icon = vgui.Create("DImage", button)
+        --icon:SetSize(width - 8, width - 8)
+        --icon:SetPos(4, 4)
+        --icon:SetImage("maps/" .. v, "vgui/avatar_default")
+        
+        local html = vgui.Create( "HTML", button)
+        html:SetSize(width - 8, width - 8)
+        html:SetPos(4,4)
+        local hCode = "<style type='text/css'> body {overflow:hidden; }</style><body><img src=http://mrblue.specialattack.net/gmod/maps/" .. mapName .. ".png width=100% height=100%></body>"
+        html:SetHTML(hCode)
         
         self.mapList:AddItem(button)
     end
