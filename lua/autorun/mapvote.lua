@@ -56,7 +56,7 @@ if SERVER then
     AddCSLuaFile("mapvote/cl_mapvote.lua")
 
     include("mapvote/sv_mapvote.lua")
-    --include("mapvote/rtv.lua")
+    include("mapvote/rtv.lua")
 else
     include("mapvote/cl_mapvote.lua")
 end
