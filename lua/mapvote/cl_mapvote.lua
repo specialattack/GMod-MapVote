@@ -1,4 +1,4 @@
-surface.CreateFont("RAM_VoteFont", {
+surface.CreateFont( "RAM_VoteFont", {
     font = "Trebuchet MS",
     size = 19,
     weight = 700,
@@ -6,7 +6,7 @@ surface.CreateFont("RAM_VoteFont", {
     shadow = true
 })
 
-surface.CreateFont("RAM_VoteFontGamemode", {
+surface.CreateFont( "RAM_VoteFontGamemode", {
     font = "Trebuchet MS",
     size = 19,
     antialias = true,
@@ -14,7 +14,7 @@ surface.CreateFont("RAM_VoteFontGamemode", {
     outline = true
 })
 
-surface.CreateFont("RAM_VoteFontCountdown", {
+surface.CreateFont( "RAM_VoteFontCountdown", {
     font = "Tahoma",
     size = 32,
     weight = 700,
@@ -22,7 +22,7 @@ surface.CreateFont("RAM_VoteFontCountdown", {
     shadow = true
 })
 
-surface.CreateFont("RAM_VoteSysButton", 
+surface.CreateFont( "RAM_VoteSysButton", 
 {    font = "Marlett",
     size = 13,
     weight = 0,
@@ -31,93 +31,137 @@ surface.CreateFont("RAM_VoteSysButton",
 
 MapVote.EndTime = 0
 MapVote.Panel = false
+MapVote.Players = {}
 
-net.Receive("RAM_MapVoteStart", function()
+net.Receive( "RAM_MapVoteStart", function()
     MapVote.CurrentMaps = {}
+    MapVote.CurrentGamemodes = {}
     MapVote.Allow = true
     MapVote.Votes = {}
     
     local amt = net.ReadUInt(32)
     
     for i = 1, amt do
+        local name = net.ReadString()
+        local shorthand = net.ReadString()
+        local color = net.ReadString()
+        
+        MapVote.CurrentGamemodes[name] = { shorthand, color }
+    end
+    
+    amt = net.ReadUInt(32)
+    
+    for i = 1, amt do
         local map = net.ReadString()
         local gamemode = net.ReadString()
+        local previewURL = net.ReadString()
         
-        MapVote.CurrentMaps[#MapVote.CurrentMaps + 1] = { map, gamemode }
+        MapVote.CurrentMaps[map] = { gamemode, previewURL }
     end
     
     MapVote.EndTime = CurTime() + net.ReadUInt(32)
     
-    if(IsValid(MapVote.Panel)) then
+    if IsValid( MapVote.Panel ) then
         MapVote.Panel:Remove()
     end
     
-    MapVote.Panel = vgui.Create("RAM_VoteScreen")
-    MapVote.Panel:SetMaps(MapVote.CurrentMaps)
+    MapVote.Panel = vgui.Create( "RAM_VoteScreen" )
+    MapVote.Panel:SetGamemodes( MapVote.CurrentGamemodes )
+    MapVote.Panel:SetMaps( MapVote.CurrentMaps )
 end)
 
-net.Receive("RAM_MapVoteUpdate", function()
-    local update_type = net.ReadUInt(3)
+net.Receive( "RAM_MapVoteUpdate", function()
+    local update_type = net.ReadUInt( 3 )
     
-    if(update_type == MapVote.UPDATE_VOTE) then
+    if update_type == MapVote.UPDATE_VOTE then
         local ply = net.ReadEntity()
         
-        if(IsValid(ply)) then
-            local map_id = net.ReadUInt(32)
-            MapVote.Votes[ply:SteamID()] = map_id
-        
-            if(IsValid(MapVote.Panel)) then
-                MapVote.Panel:AddVoter(ply)
+        if IsValid( ply ) then
+            local map = net.ReadString() -- 
+            if not MapVote.Players[ply:SteamID()] then
+                local addr = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=FA00819718A65791DEA67E7DCFEC1B74&steamids=" .. ply:SteamID64() .. "?format=xml"
+                local count = 0
+                print( "Fetching player data from " .. addr )
+                local HTTPRequest = {
+                    url = addr,
+                    method = "get",
+                    success = function( code, body, headers )
+                        if code == 0 or #body == 0 then
+                            print( "Failed! Length: " .. #body .. "; Code: " .. code )
+                            MapVote.Players[ply:SteamID()] = ply:SteamID64()
+                            MapVote.Panel:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
+                        else
+                            print( "Length: " .. #body .. "; Code: " .. code )
+                            MapVote.Players[ply:SteamID()] = body
+                            MapVote.Panel:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
+                        end
+                    end,
+                    failed = function( reason )
+                        print( "Failed! " .. reason )
+                        MapVote.Players[ply:SteamID()] = ply:SteamID64()
+                        MapVote.Panel:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
+                    end
+                }
+                HTTP( HTTPRequest )
+            end
+            MapVote.Votes[ply:SteamID()] = map
+            
+            if IsValid( MapVote.Panel ) then
+                MapVote.Panel:AddVoter( ply, map )
             end
         end
-    elseif(update_type == MapVote.UPDATE_WIN) then      
-        if(IsValid(MapVote.Panel)) then
-            MapVote.Panel:Flash(net.ReadUInt(32))
+    elseif update_type == MapVote.UPDATE_WIN then      
+        if IsValid( MapVote.Panel ) then
+            MapVote.Panel:Flash( net.ReadString() )
         end
     end
 end)
 
-net.Receive("RAM_MapVoteCancel", function()
-    if IsValid(MapVote.Panel) then
+net.Receive( "RAM_MapVoteCancel", function()
+    if IsValid( MapVote.Panel ) then
         MapVote.Panel:Remove()
     end
 end)
 
-net.Receive("RTV_Delay", function()
-    chat.AddText(Color( 102,255,51 ), "[RTV]", Color( 255,255,255 ), " The vote has been rocked, map vote will begin on round end")
+net.Receive( "RTV_Delay", function()
+    chat.AddText( Color( 102,255,51 ), "[RTV]", Color( 255,255,255 ), " The vote has been rocked, map vote will begin on round end" )
+end)
+
+net.Receive( "RAM_MapVoteFile", function()
+    local path = net.ReadString()
+    local content = net.ReadString()
+    path = string.StripExtension( path ) .. ".txt"
+    file.CreateDir( string.GetPathFromFilename( path ) )
+    file.Write( path, content )
 end)
 
 local PANEL = {}
 
 function PANEL:Init()
     self:ParentToHUD()
+    self:Dock( FILL )
     
-    self.Canvas = vgui.Create("Panel", self)
-    self.Canvas:MakePopup()
-    self.Canvas:SetKeyboardInputEnabled(false)
-    --[[ Use to test spacing
-    self.Canvas.Paint = function(s, w, h)
-        local col = Color(255, 255, 255, 10)
-        
-        draw.RoundedBox(4, 0, 0, w, h, col)
-    end
-    --]]
+    self.HTML = vgui.Create( "DHTML", self )
     
-    self.countDown = vgui.Create("DLabel", self.Canvas)
-    self.countDown:SetTextColor(color_white)
-    self.countDown:SetFont("RAM_VoteFontCountdown")
-    self.countDown:SetText("Initializing...")
-    self.countDown:SetPos(0, 14)
-    self.countDown:SizeToContents()
-    self.countDown:CenterHorizontal()
+    self.HTML:Dock( FILL )
+    self.HTML:OpenURL( "asset://garrysmod/data/mapvote/html/mapvote.txt" )
+    self.HTML:SetMouseInputEnabled( true )
+    self.HTML:SetKeyboardInputEnabled( false )
+    self.HTML:SetAllowLua( true )
+    self.HTML:AddFunction( "MapVoteLua", "Vote", function( map )
+        if map then
+            net.Start( "RAM_MapVoteUpdate" )
+                net.WriteUInt( MapVote.UPDATE_VOTE, 3 )
+                net.WriteString( map )
+            net.SendToServer()
+        end
+    end)
+    self.HTML:RequestFocus()
     
-    self.mapList = vgui.Create("DPanelList", self.Canvas)
-    self.mapList:SetDrawBackground(true)
-    self.mapList:SetSpacing(4)
-    self.mapList:SetPadding(4)
-    self.mapList:EnableHorizontal(true)
-    self.mapList:EnableVerticalScrollbar()
+    self:MakePopup()
+    self:SetKeyboardInputEnabled( false )
     
+    --[[
     self.closeButton = vgui.Create("DButton", self.Canvas)
     self.closeButton:SetText("")
 
@@ -129,120 +173,27 @@ function PANEL:Init()
         print("HI")
         self:SetVisible(false)
     end
-
-    --[[ Why are these even here?
-    self.maximButton = vgui.Create("DButton", self.Canvas)
-    self.maximButton:SetText("")
-    self.maximButton:SetDisabled(true)
-
-    self.maximButton.Paint = function(panel, w, h)
-        derma.SkinHook("Paint", "WindowMaximizeButton", panel, w, h)
-    end
-
-    self.minimButton = vgui.Create("DButton", self.Canvas)
-    self.minimButton:SetText("")
-    self.minimButton:SetDisabled(true)
-
-    self.minimButton.Paint = function(panel, w, h)
-        derma.SkinHook("Paint", "WindowMinimizeButton", panel, w, h)
-    end
     --]]
 
     self.Voters = {}
 end
 
-function PANEL:PerformLayout()
-    local cx, cy = chat.GetChatBoxPos()
-    
-    self:SetPos(0, 0)
-    self:SetSize(ScrW(), ScrH())
-        
-    local extra = math.Clamp(300, 0, ScrW() - 624)
-    self.Canvas:StretchToParent(0, 0, 0, 0)
-    self.Canvas:SetWide(624 + extra)
-    self.Canvas:SetTall(cy - 20)
-    self.Canvas:SetPos(0, 20)
-    self.Canvas:CenterHorizontal()
-    self.Canvas:SetZPos(0)
-    
-    self.mapList:StretchToParent(0, 90, 0, 0)
-
-    local buttonPos = 624 + extra - 30
-
-    self.closeButton:SetPos(buttonPos, -4)
-    self.closeButton:SetSize(31, 31)
-    self.closeButton:SetVisible(true)
-
-    --[[
-    self.maximButton:SetPos(buttonPos - 31 * 1, 4)
-    self.maximButton:SetSize(31, 31)
-    self.maximButton:SetVisible(true)
-
-    self.minimButton:SetPos(buttonPos - 31 * 2, 4)
-    self.minimButton:SetSize(31, 31)
-    self.minimButton:SetVisible(true)
-    --]]
+function PANEL:AddVoterInfo( ply, info )
+    local data = util.JSONToTable( info )
+    print( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
+    self.HTML:Call( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
 end
 
-local heart_mat = Material("icon16/heart.png")
-local star_mat = Material("icon16/star.png")
-local shield_mat = Material("icon16/shield.png")
-
-function PANEL:AddVoter(voter)
-    for k, v in pairs(self.Voters) do
-        if(v.Player and v.Player == voter) then
-            return false
-        end
+function PANEL:AddVoter( ply, map )
+    print( string.format( "MapVote.AddVoter( %q, %q )", ply:GetName(), map ) )
+    self.HTML:Call( string.format( "MapVote.AddVoter( %q, %q )", ply:GetName(), map ) )
+    if MapVote.Players[ply:SteamID()] then
+        self:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
     end
-    
-    
-    local icon_container = vgui.Create("Panel", self.mapList:GetCanvas())
-    local icon = vgui.Create("AvatarImage", icon_container)
-    icon:SetSize(16, 16)
-    icon:SetZPos(1000)
-    icon:SetTooltip(voter:Name())
-    icon_container.Player = voter
-    icon_container:SetTooltip(voter:Name())
-    icon:SetPlayer(voter, 16)
-
-    if MapVote.HasExtraVotePower(voter) then
-        icon_container:SetSize(40, 20)
-        icon:SetPos(21, 2)
-        icon_container.img = star_mat
-    else
-        icon_container:SetSize(20, 20)
-        icon:SetPos(2, 2)
-    end
-    
-    icon_container.Paint = function(s, w, h)
-        draw.RoundedBox(4, 0, 0, w, h, Color(255, 0, 0, 80))
-        
-        if(icon_container.img) then
-            surface.SetMaterial(icon_container.img)
-            surface.SetDrawColor(Color(255, 255, 255))
-            surface.DrawTexturedRect(2, 2, w / 2 - 2, h - 4)
-        end
-    end
-    
-    do
-        local OrigSetSize = icon_container.SetSize
-        icon_container.SetSize = function(s, w, h)
-            if MapVote.HasExtraVotePower(voter) then
-                icon:SetPos(h + 2, 2)
-                icon:SetSize(h - 4, h - 4)
-                OrigSetSize(s, h * 2, h)
-            else
-                icon:SetPos(2, 2)
-                icon:SetSize(h - 4, h - 4)
-                OrigSetSize(s, h, h)
-            end
-        end
-    end
-    
-    table.insert(self.Voters, icon_container)
 end
 
 function PANEL:Think()
+    --[[
     for k, v in pairs(self.mapList:GetItems()) do
         v.PrevVotes = v.NumVotes or 0
         v.NumVotes = 0
@@ -295,103 +246,39 @@ function PANEL:Think()
         end
         
     end
-    
+    --]]
     local timeLeft = math.Round(math.Clamp(MapVote.EndTime - CurTime(), 0, math.huge))
     
-    self.countDown:SetText(tostring(timeLeft or 0).." seconds")
-    self.countDown:SizeToContents()
-    self.countDown:CenterHorizontal()
-end
-
-function PANEL:SetMaps(maps)
-    self.mapList:Clear()
-    
-    for k, v in RandomPairs(maps) do
-        local button = vgui.Create("DButton", self.mapList)
-        button.ID = k
-        button:SetText("")
-        
-        button.DoClick = function()
-            net.Start("RAM_MapVoteUpdate")
-                net.WriteUInt(MapVote.UPDATE_VOTE, 3)
-                net.WriteUInt(button.ID, 32)
-            net.SendToServer()
-        end
-        
-        local extra = math.Clamp(300, 0, ScrW() - 624)
-        local width = (extra + 600) / 5
-        local height = width + 60
-        local mapName = v[1]
-        local gamemode = v[2]
-        
-        do
-            local Paint = button.Paint
-            button.Paint = function(s, w, h)
-                local col = Color(255, 255, 255, 10)
-                
-                if(button.bgColor) then
-                    col = button.bgColor
-                end
-                
-                draw.RoundedBox(4, 0, 0, w, h, col)
-                draw.DrawText(mapName, "RAM_VoteFont", width / 2, width - 6, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
-                --draw.DrawText(gamemode, "RAM_VoteFontGamemode", width / 2, width - 18, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER)
-                --draw.SimpleTextOutlined( string Text, string font, number x, number y, table color, number xAlign, number yAlign, number outlinewidth, table outlinecolor )
-                draw.SimpleTextOutlined( gamemode, "RAM_VoteFont", width / 2, width + 16, Color(255, 255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1, Color(0, 0, 0, 255) )
-                Paint(s, w, h)
-            end
-        end
-        
-        button:SetTextColor(color_white)
-        button:SetContentAlignment(4)
-        --button:SetTextInset(8, 0)
-        button:SetFont("RAM_VoteFont")
-        
-        button:SetDrawBackground(false)
-        button:SetTall(height)
-        button:SetWide(width)
-        button.NumVotes = 0
-        
-        local icon = vgui.Create("DImage", button)
-        icon:SetSize(width - 8, width - 8)
-        icon:SetPos(4, 4)
-        icon:SetImage("maps/" .. v[1], "vgui/avatar_default")
-        
-        self.mapList:AddItem(button)
-    end
-end
-
-function PANEL:GetMapButton(id)
-    for k, v in pairs(self.mapList:GetItems()) do
-        if(v.ID == id) then return v end
-    end
-    
-    return false
+    self.HTML:Call( string.format( "MapVote.UpdateTimer( %q )", tostring(timeLeft or 0).." seconds" ) )
 end
 
 function PANEL:Paint()
-    --Derma_DrawBackgroundBlur(self)
-    
-    local CenterY = ScrH() / 2
-    local CenterX = ScrW() / 2
-    
-    surface.SetDrawColor(0, 0, 0, 200)
-    surface.DrawRect(0, 0, ScrW(), ScrH())
 end
 
-function PANEL:Flash(id)
-    self:SetVisible(true)
-
-    local bar = self:GetMapButton(id)
-    
-    if(IsValid(bar)) then
-        timer.Simple( 0.0, function() bar.bgColor = Color( 0, 255, 255 ) surface.PlaySound( "hl1/fvox/blip.wav" ) end )
-        timer.Simple( 0.2, function() bar.bgColor = nil end )
-        timer.Simple( 0.4, function() bar.bgColor = Color( 0, 255, 255 ) surface.PlaySound( "hl1/fvox/blip.wav" ) end )
-        timer.Simple( 0.6, function() bar.bgColor = nil end )
-        timer.Simple( 0.8, function() bar.bgColor = Color( 0, 255, 255 ) surface.PlaySound( "hl1/fvox/blip.wav" ) end )
-        timer.Simple( 1.0, function() bar.bgColor = Color( 100, 100, 100 ) end )
+function PANEL:SetGamemodes( gamemodes )
+    for k, v in RandomPairs( gamemodes ) do
+        self.HTML:Call( string.format( "MapVote.AddGamemode( %q, %q, %q )", k, v[1], v[2] ) )
     end
+end
+
+function PANEL:SetMaps( maps )
+    for k, v in RandomPairs( maps ) do
+        self.HTML:Call( string.format( "MapVote.AddMap( %q, %q, %q )", k, v[1], v[2] ) )
+    end
+end
+
+function PANEL:Flash( map )
+    self:SetVisible( true )
+    
+    local callon = string.format( "MapVote.BlinkMap( %q, true )", map )
+    local calloff = string.format( "MapVote.BlinkMap( %q, false )", map )
+
+    timer.Simple( 0.0, function() self.HTML:Call( callon ) surface.PlaySound( "hl1/fvox/blip.wav" ) end )
+    timer.Simple( 0.2, function() self.HTML:Call( calloff ) end )
+    timer.Simple( 0.4, function() self.HTML:Call( callon ) surface.PlaySound( "hl1/fvox/blip.wav" ) end )
+    timer.Simple( 0.6, function() self.HTML:Call( calloff ) end )
+    timer.Simple( 0.8, function() self.HTML:Call( callon ) surface.PlaySound( "hl1/fvox/blip.wav" ) end )
+    timer.Simple( 1.0, function() self.HTML:Call( calloff ) end )
 end
 
 derma.DefineControl("RAM_VoteScreen", "", PANEL, "DPanel")
