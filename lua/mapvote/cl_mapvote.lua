@@ -81,23 +81,21 @@ net.Receive( "RAM_MapVoteUpdate", function()
             if not MapVote.Players[ply:SteamID()] then
                 local addr = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=FA00819718A65791DEA67E7DCFEC1B74&steamids=" .. ply:SteamID64() .. "?format=xml"
                 local count = 0
-                print( "Fetching player data from " .. addr )
                 local HTTPRequest = {
                     url = addr,
                     method = "get",
                     success = function( code, body, headers )
                         if code == 0 or #body == 0 then
-                            print( "Failed! Length: " .. #body .. "; Code: " .. code )
+                            print( "Failed getting player info! Length: " .. #body .. "; Code: " .. code )
                             MapVote.Players[ply:SteamID()] = ply:SteamID64()
                             MapVote.Panel:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
                         else
-                            print( "Length: " .. #body .. "; Code: " .. code )
                             MapVote.Players[ply:SteamID()] = body
                             MapVote.Panel:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
                         end
                     end,
                     failed = function( reason )
-                        print( "Failed! " .. reason )
+                        print( "Failed getting player info! Reason: " .. reason )
                         MapVote.Players[ply:SteamID()] = ply:SteamID64()
                         MapVote.Panel:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )
                     end
@@ -180,12 +178,12 @@ end
 
 function PANEL:AddVoterInfo( ply, info )
     local data = util.JSONToTable( info )
-    print( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
+    --print( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
     self.HTML:Call( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
 end
 
 function PANEL:AddVoter( ply, map )
-    print( string.format( "MapVote.AddVoter( %q, %q )", ply:GetName(), map ) )
+    --print( string.format( "MapVote.AddVoter( %q, %q )", ply:GetName(), map ) )
     self.HTML:Call( string.format( "MapVote.AddVoter( %q, %q )", ply:GetName(), map ) )
     if MapVote.Players[ply:SteamID()] then
         self:AddVoterInfo( ply, MapVote.Players[ply:SteamID()] )

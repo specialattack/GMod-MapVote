@@ -202,3 +202,9 @@ function MapVote.Cancel()
         timer.Destroy( "RAM_MapVote" )
     end
 end
+
+hook.Add( "Initialize", "InitPostEntity", function()
+    function GAMEMODE:StartGamemodeVote()
+        MapVote.Start( nil, nil, nil, nil )
+    end
+end)

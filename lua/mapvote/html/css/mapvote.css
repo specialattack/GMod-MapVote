@@ -149,8 +149,8 @@ body.debug .map .avatars {
 .voter {
     -webkit-transition-property: left, top, width, height;
     transition-property: left, top, width, height;
-    -webkit-transition-duration: 0.6s;
-    transition-duration: 0.6s;
+    -webkit-transition-duration: 0.4s;
+    transition-duration: 0.4s;
     -webkit-transition-timing-function: ease-out;
     transition-timing-function: ease-out;
     -webkit-border-radius: 4px;
