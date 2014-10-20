@@ -136,8 +136,9 @@ end)
 local PANEL = {}
 
 function PANEL:Init()
-    self:ParentToHUD()
+    --self:ParentToHUD()
     self:Dock( FILL )
+    self:SetZPos( 2000 )
     
     self.HTML = vgui.Create( "DHTML", self )
     
