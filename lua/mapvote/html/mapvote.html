@@ -1,6 +1,8 @@
 <html>
     <head>
         <title>Map Voting</title>
+        
+        <script type="text/javascript" src="../../../html/js/thirdparty/jquery.js"></script>
 
         <link rel="stylesheet" type="text/css" href="css/mapvote.css">
         <script type="text/javascript" src="js/mapvote.js"></script>
@@ -8,39 +10,45 @@
         <!-- Include .txt versions for when the files have been sent to the client as they are forced to be .txt files. -->
         <script type="text/javascript" src="js/mapvote.txt"></script>
         <link rel="stylesheet" type="text/css" href="css/mapvote.txt">
-        
-        <script type="text/javascript" src="../../../html/js/thirdparty/jquery.js"></script>
     </head>
     <body>
-        <span id="timer">Loading...</span>
-        <div id="mapscontainer">
-            <div id="maps"></div>
+        <span id="timer" class="outlined">Loading...</span>
+        <div id="contentholder">
+            <div id="mapscontainer">
+                <div id="maps"></div>
+            </div>
+            <div id="feedbackholder">
+                <div id="feedback" class="outlined">
+                    Give feedback on this map:
+                    <div id="feedback-stars"></div>
+                </div>
+            </div>
         </div>
         <div id="voters"></div>
-        <div id="svgcontainer">
+        <div id="templates">
             <svg id="missing" viewBox="0 0 180 180" preserveAspectRatio="xMidYMid meet">
-                <rect x="0" y="0" rx="10" ry="10" width="100%" height="100%" style="fill:black;" />
+                <rect x="0" y="0" rx="10" ry="10" width="100%" height="100%" style="fill:black;" ></rect>
                 <text x="50%" y="45%" fill="red" text-anchor="middle" font-size="40px">Missing</text>
                 <text x="50%" y="65%" fill="red" text-anchor="middle" font-size="40px">Icon</text>
             </svg>
             <svg id="loading" viewBox="0 0 180 180" preserveAspectRatio="xMidYMid meet">
-                <rect x="0" y="0" rx="10" ry="10" width="100%" height="100%" style="fill:black;" />
+                <rect x="0" y="0" rx="10" ry="10" width="100%" height="100%" style="fill:black;" ></rect>
                 <text x="50%" y="50%" fill="red" text-anchor="middle" font-size="80px">...</text>
             </svg>
         </div>
         <script type="text/javascript">
         if (!IN_ENGINE) {
             MapVote.AddGamemode("terrortown", "TTT", "rgba(0, 127, 255, 0.8)");
-            MapVote.AddMap("KHAAAAAAAAAAAAAAAAAAN", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test2", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test3", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test4", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test5", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test6", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test7", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test8", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test9", "murder", "http://mrblue.specialattack.net/gmod/maps/de_train.png");
-            MapVote.AddMap("test10", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train2.png");
+            MapVote.AddMap("KHAAAAAAAAAAAAAAAAAAN", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 5);
+            MapVote.AddMap("test2", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 3);
+            MapVote.AddMap("test3", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 2);
+            MapVote.AddMap("test4", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 4);
+            MapVote.AddMap("test5", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 4);
+            MapVote.AddMap("test6", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 3);
+            MapVote.AddMap("test7", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 2);
+            MapVote.AddMap("test8", "terrortown", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 5);
+            MapVote.AddMap("test9", "murder", "http://mrblue.specialattack.net/gmod/maps/de_train.png", 4);
+            MapVote.AddMap("test10", "prop_hunt", "http://mrblue.specialattack.net/gmod/maps/de_train2.png", 3);
             MapVote.AddGamemode("prop_hunt", "PH", "rgba(127, 255, 0, 0.8)");
             MapVote.AddGamemode("murder", "MD", "rgba(255, 0, 127, 0.8)");
         }

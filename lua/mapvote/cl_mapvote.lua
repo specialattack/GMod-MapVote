@@ -41,7 +41,7 @@ net.Receive( "RAM_MapVoteStart", function()
     
     local amt = net.ReadUInt(32)
     
-    for i = 1, amt do
+    for _ = 1, amt do
         local name = net.ReadString()
         local shorthand = net.ReadString()
         local color = net.ReadString()
@@ -51,12 +51,13 @@ net.Receive( "RAM_MapVoteStart", function()
     
     amt = net.ReadUInt(32)
     
-    for i = 1, amt do
+    for _ = 1, amt do
         local map = net.ReadString()
         local gamemode = net.ReadString()
         local previewURL = net.ReadString()
+        local score = net.ReadUInt( 32 )
         
-        MapVote.CurrentMaps[map] = { gamemode, previewURL }
+        MapVote.CurrentMaps[map] = { gamemode, previewURL, score }
     end
     
     MapVote.EndTime = CurTime() + net.ReadUInt(32)
@@ -71,7 +72,7 @@ net.Receive( "RAM_MapVoteStart", function()
 end)
 
 net.Receive( "RAM_MapVoteUpdate", function()
-    local update_type = net.ReadUInt( 3 )
+    local update_type = net.ReadUInt( 8 )
     
     if update_type == MapVote.UPDATE_VOTE then
         local ply = net.ReadEntity()
@@ -80,11 +81,10 @@ net.Receive( "RAM_MapVoteUpdate", function()
             local map = net.ReadString() -- 
             if not MapVote.Players[ply:SteamID()] then
                 local addr = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=FA00819718A65791DEA67E7DCFEC1B74&steamids=" .. ply:SteamID64() .. "?format=xml"
-                local count = 0
                 local HTTPRequest = {
                     url = addr,
                     method = "get",
-                    success = function( code, body, headers )
+                    success = function( code, body, _ )
                         if code == 0 or #body == 0 then
                             print( "Failed getting player info! Length: " .. #body .. "; Code: " .. code )
                             MapVote.Players[ply:SteamID()] = ply:SteamID64()
@@ -150,8 +150,16 @@ function PANEL:Init()
     self.HTML:AddFunction( "MapVoteLua", "Vote", function( map )
         if map then
             net.Start( "RAM_MapVoteUpdate" )
-                net.WriteUInt( MapVote.UPDATE_VOTE, 3 )
+                net.WriteUInt( MapVote.UPDATE_VOTE, 8 )
                 net.WriteString( map )
+            net.SendToServer()
+        end
+    end)
+    self.HTML:AddFunction( "MapVoteLua", "Feedback", function( score )
+        if score then
+            net.Start( "RAM_MapVoteUpdate" )
+                net.WriteUInt( MapVote.UPDATE_FEEDBACK, 8 )
+                net.WriteUInt( score, 8 )
             net.SendToServer()
         end
     end)
@@ -180,7 +188,9 @@ end
 function PANEL:AddVoterInfo( ply, info )
     local data = util.JSONToTable( info )
     --print( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
-    self.HTML:Call( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
+    if data ~= nil then
+        self.HTML:Call( string.format( "MapVote.AddVoterAvatar( %q, %q )", ply:GetName(), data["response"]["players"][1]["avatar"] ) )
+    end
 end
 
 function PANEL:AddVoter( ply, map )
@@ -262,7 +272,7 @@ end
 
 function PANEL:SetMaps( maps )
     for k, v in RandomPairs( maps ) do
-        self.HTML:Call( string.format( "MapVote.AddMap( %q, %q, %q )", k, v[1], v[2] ) )
+        self.HTML:Call( string.format( "MapVote.AddMap( %q, %q, %q, %q )", k, v[1], v[2], math.floor( v[3] + 0.5 ) ) )
     end
 end
 
